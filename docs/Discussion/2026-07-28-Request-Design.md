@@ -1,19 +1,20 @@
+
 # 2026-07-28 Request Design
 
 ## 今日目標
 
--   確認 Request 模組定位
--   確認 Request 欄位
--   確認 Request Status
--   明確劃分 Request 與 Workflow 的責任
+- 確認 Request 模組定位
+- 確認 Request 欄位
+- 確認 Request Status
+- 明確劃分 Request 與 Workflow 的責任
 
-------------------------------------------------------------------------
+---
 
 # 今日結論
 
 ## 平台流程
 
-``` text
+```text
 Request
     ↓
 Workflow
@@ -21,203 +22,135 @@ Workflow
 Notification
 ```
 
-------------------------------------------------------------------------
+---
 
 ## Request 責任
 
 Request 負責：
 
--   收集來源資料
--   判斷 RequestType
--   Rule / AI / Parser 整理 Content
--   驗證資料完整性
--   建立標準化 Request
+- 收集來源資料
+- 判斷 RequestType
+- 透過 Rule / AI / Parser 整理 Content
+- 驗證資料完整性
+- 建立標準化 Request
 
 Request 不負責：
 
--   Workflow 執行
--   Notification
--   Mail Archive
+- Workflow 執行
+- Notification
+- Content 格式設計
+- Mail Archive
 
-------------------------------------------------------------------------
+---
 
 ## Request Status
 
 第一階段僅保留：
 
-``` text
+```text
 New
 Manual
 ```
 
-New： - 可交由 Workflow
+- New：可交由 Workflow 執行
+- Manual：需人工介入（Rule 判斷失敗、資料不足、多個申請...）
 
-Manual： - 人工介入 - Rule/AI 判斷失敗 - 資料不足 - 多個申請
-
-Workflow Status 留待 Workflow 模組設計。
-
-------------------------------------------------------------------------
+---
 
 ## Request 欄位
 
-  欄位            用途
-  --------------- --------------------
-  RequestId       流水號
-  Source          MIS 找原始資料來源
-  Subject         Mail 主旨
-  RequestType     Workflow 類型
-  Content         整理完成內容
-  RequestStatus   New / Manual
-  CreatedBy       建立者
-  CreatedAt       建立時間
-  UpdatedBy       最後修改者
-  UpdatedAt       最後修改時間
+|欄位|用途|主要使用者|原因|
+|---|---|---|---|
+|RequestId|Request 唯一識別碼|System|識別每一筆 Request|
+|Source|記錄 Request 來源系統|MIS|方便人工回查原始資料來源|
+|Subject|Request 主旨|MIS|方便辨識 Request，不限定 Mail，可依來源存放對應主旨（Mail 主旨、Web 申請名稱…）|
+|RequestType|決定要執行哪個 Workflow|Workflow|Workflow 不需判斷來源，只依 RequestType 執行|
+|Content|Workflow 所需資料|Workflow|Workflow 僅處理 Request 整理完成的資料|
+|RequestStatus|Request 目前狀態|Workflow、MIS|判斷是否可交由 Workflow 執行或需人工介入|
+|CreatedBy|建立者|MIS、Audit|保留建立紀錄|
+|CreatedAt|建立時間|MIS、Audit|保留建立時間|
+|UpdatedBy|最後修改者|MIS、Audit|保留最後修改人|
+|UpdatedAt|最後修改時間|MIS、Audit|保留最後修改時間|
 
-------------------------------------------------------------------------
-
-## Source 定義
-
-Source 的目的不是 Workflow 判斷。
-
-主要用途：
-
--   MIS 人工處理
--   問題追查
--   找到原始資料來源
-
-例如：
-
-``` text
-EmailOutlook
-EmailExchange
-Web
-API
-```
-
-------------------------------------------------------------------------
+---
 
 ## Subject
 
-保存原始 Mail 主旨。
+Subject 定義為 **Request 主旨**。
 
-目前不保存 MessageId / SourceId。
+依不同來源可對應不同內容，例如：
 
-理由：
+- Email：Mail 主旨
+- Web：申請名稱
+- API：Request 標題
+- 其他來源：對應的主旨或標題
 
-目前可透過：
+因此不限定為 Mail Subject。
 
--   Source
--   Subject
--   CreatedAt
+---
 
-由 MIS 人工回查原始郵件。
+## Source
 
-------------------------------------------------------------------------
+Source 記錄 Request 的來源系統。
+
+用途：
+
+- MIS 人工查找原始資料
+- 問題追查
+
+Workflow 不依賴 Source 判斷。
+
+---
 
 ## Content
 
 Content 定義：
 
-> Workflow Input
+> Workflow 的輸入資料（Workflow Input）
 
-無論來源為 Rule、AI 或人工整理， Workflow 都只接收 Content。
+目前僅確認：
 
-------------------------------------------------------------------------
+- Request 負責產生 Content
+- Workflow 使用 Content
+
+Content 的格式與 Schema 留待 Workflow 設計時再決定。
+
+---
 
 ## Created / Updated
 
 Created：
 
--   建立後不可修改
+- 建立後不再變更
 
 Updated：
 
--   每次異動更新
+- 每次異動皆更新
 
-建立時：
-
-``` text
-CreatedBy = system
-CreatedAt = 建立時間
-UpdatedBy = system
-UpdatedAt = 建立時間
-```
-
-之後修改：
-
-``` text
-只更新
-
-UpdatedBy
-UpdatedAt
-```
-
-------------------------------------------------------------------------
+---
 
 # 尚未決定
 
-留待 Workflow 討論：
+- Content 格式（JSON / Schema）
+- Workflow 如何取得 Request
+- Workflow Status
+- Retry 機制
+- WorkflowInstance
 
--   Workflow 如何取得 Request
--   WorkflowInstance
--   Retry
--   執行狀態
--   UpdatedAt 查詢方式
--   是否需要 RequestVersion
-
-------------------------------------------------------------------------
+---
 
 # Future Backlog
 
-## 2026-07-28
+- ADR
+- Rule 分類
+- Git Flow
+- Coding Guideline
+- Document Standard
 
-### ADR
-
-保留設計決策與原因。
-
-暫不建立。
-
-------------------------------------------------------------------------
-
-### Rule 分類
-
--   Business Rule
--   Security Guard
--   System Rule
-
-------------------------------------------------------------------------
-
-### Project Governance
-
--   Git Flow
--   Coding Guideline
--   Document Standard
--   ADR
-
-------------------------------------------------------------------------
-
-### Idea Log
-
-每日累積想法。
-
-第一階段完成後重新評估。
-
-------------------------------------------------------------------------
+---
 
 # 下次建議討論
 
-1.  Workflow 模組
-
--   Workflow 定位
--   Workflow Status
--   Workflow 與 Request 邊界
-
-2.  Database
-
--   Request Table
--   Workflow Table
-
-3.  Notification
-
--   成功通知
--   失敗通知
+1. Workflow 設計
+2. Database 設計
+3. Notification 設計
