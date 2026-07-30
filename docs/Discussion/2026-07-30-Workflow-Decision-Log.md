@@ -28,7 +28,7 @@
 討論重點：
 
 - 一次抓一筆 Request？
-- 還是一次抓多筆 Pending Request？
+- 還是一次抓多筆 New Request？
 - 查詢頻率如何控制？
 - Request 何時更新為 Processing？
 
@@ -36,10 +36,10 @@
 
 Dispatcher：
 
-- 依固定週期查詢 Pending Request。
+- 依固定週期查詢 New Request。
 - 查詢週期由參數檔控制。
 - 預設每 5 分鐘執行一次。
-- 每次可取得多筆 Pending Request。
+- 每次可取得多筆 New Request。
 - Dispatcher 更新 Status = Processing 後，再分派 Worker。
 
 ---
@@ -82,7 +82,7 @@ Worker：
 
 ## 討論
 
-Success：
+Completed：
 
 正常完成。
 
@@ -116,7 +116,7 @@ Remark 紀錄人工處理原因即可。
 
 Status：
 
-- Success
+- Completed
 - Failed
 
 Remark：
@@ -190,7 +190,7 @@ V1 不實作：
 
 Worker 是否只能依序執行？
 
-若 Pending 很多：
+若 New 很多：
 
 是否允許平行處理？
 
@@ -218,7 +218,7 @@ Dispatcher
 
 ↓
 
-查詢 Pending Request
+查詢 New Request
 
 ↓
 
@@ -238,7 +238,7 @@ Worker 更新 Status、Remark
 
 ↓
 
-Success / Failed
+Completed / Failed
 
 ---
 
