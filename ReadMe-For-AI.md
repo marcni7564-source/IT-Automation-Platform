@@ -195,3 +195,10 @@ Coding
 ↓
 
 Testing
+
+# 目前 Discussion
+
+- docs/Discussion/06-Decisions-2026-07-28.md
+- docs/Discussion/2026-07-28-Request-Decision-Log.md
+- docs/Discussion/2026-07-29-Request-Decision-Log.md
+- docs/Discussion/2026-07-29-Workflow-Decision-Log.md
