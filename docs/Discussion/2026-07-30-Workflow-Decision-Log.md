@@ -1,178 +1,249 @@
-# Workflow Decision Log
 
-**建立日期：** 2026-07-29
+# 2026-07-30 Workflow Decision Log
 
-> 本文件為 Workflow 討論文件，會隨著相關討論持續更新，直到開始 Coding 前，再整合至正式 Design 文件。
-
----
-
-# 一、Workflow 目標
-
-Workflow 負責執行 Request，不負責產生 Request。
-
-目的：
-
-- 將不同類型的 Request 自動化執行。
-- 各模組職責單純。
-- V1 以簡單、可維護為原則。
+> 延續 2026-07-29 Workflow Decision Log，本次討論主要確認 Workflow V1 的實作細節，並釐清 Dispatcher、Worker 的責任範圍與例外處理方式。
 
 ---
 
-# 二、系統流程
+# 一、討論目的
 
-```text
-Collector
-    │
-    ▼
-Request
-    │
-    ▼
-Dispatcher
-    │
-    ▼
-Worker
-    │
-    ▼
-Notification
-```
+前一天已完成 Workflow 架構設計。
 
-## 決議
+今日希望確認：
 
-- Request 為 Workflow 唯一工作來源。
-- Dispatcher 負責分派。
-- Worker 負責執行。
-- Notification 為獨立模組。
+- Dispatcher 實際如何派工。
+- Worker 如何更新 Request 狀態。
+- Processing 狀態是否需要 Timeout Recovery。
+- Worker 是否允許平行執行。
+- V1 是否需要 Retry、Heartbeat 等機制。
 
 ---
 
-# 三、Dispatcher
+# 二、Dispatcher 執行方式
 
 ## 討論
 
-曾討論由 Worker 自行查詢 Request。
+昨天雖已決定 Dispatcher 負責派工，但尚未決定實際執行流程。
 
-考量查詢會分散在各 Worker，因此改由 Dispatcher 統一管理。
+討論重點：
+
+- 一次抓一筆 Request？
+- 還是一次抓多筆 Pending Request？
+- 查詢頻率如何控制？
+- Request 何時更新為 Processing？
 
 ## 決議
 
-Dispatcher 負責：
+Dispatcher：
 
-- 查詢可執行 Request
-- 指派 Worker
-- 控制整體工作流程
-
-Dispatcher 不負責：
-
-- 執行商業邏輯
-- 發送通知
+- 依固定週期查詢 Pending Request。
+- 查詢週期由參數檔控制。
+- 預設每 5 分鐘執行一次。
+- 每次可取得多筆 Pending Request。
+- Dispatcher 更新 Status = Processing 後，再分派 Worker。
 
 ---
 
-# 四、Worker
+# 三、Worker 責任
+
+## 討論
+
+曾討論：
+
+Worker 是否只負責執行？
+
+還是：
+
+Dispatcher 統一更新 Success / Failed？
+
+討論後認為：
+
+真正知道執行結果的是 Worker。
+
+如果 Dispatcher 回寫狀態，反而需要依賴 Worker 回傳更多資訊。
 
 ## 決議
 
-Worker 專責執行工作。
-
-原則：
+Worker：
 
 - 一次只處理一筆 Request。
-- 不主動尋找工作。
-- 完成後等待 Dispatcher 再次分派。
+- Dispatcher 指派後開始執行。
+- 不主動查詢 Request。
+- 依 RequestType 執行對應流程。
+- 使用 Request Content 作為輸入參數。
+- 執行完成後自行更新：
+
+  - Status
+  - Remark
 
 ---
 
-# 五、SQL 查詢策略
+# 四、Status 更新方式
 
 ## 討論
 
-討論過：
+Success：
 
-1. Worker 自行查詢 SQL。
-2. Dispatcher 集中查詢 SQL。
+正常完成。
+
+Failed：
+
+程式執行失敗。
+
+另外討論：
+
+若需要人工介入，例如：
+
+- 人工確認
+- 人工補件
+- 人工操作
+
+是否應建立 Manual Status？
+
+討論後認為：
+
+若建立 Manual，未來統計容易混亂。
+
+真正角度應該是：
+
+程式沒有完成。
+
+因此仍屬 Failed。
+
+Remark 紀錄人工處理原因即可。
 
 ## 決議
 
-採 Dispatcher 集中查詢。
+Status：
 
-原因：
+- Success
+- Failed
 
-- SQL 查詢集中。
-- Worker 保持單純。
-- 後續維護容易。
+Remark：
 
----
-
-# 六、Request
-
-Workflow 與 Request 相依。
-
-Workflow 依 Request 狀態執行。
-
-Request 欄位若有新增或調整，需同步更新本文件相關內容。
-
-詳細 Request 設計請參考 Request Decision Log。
+- Exception
+- 人工處理原因
+- 其他說明
 
 ---
 
-# 七、Request Status
-
-（2026-07-29 補充）
-
-因 Workflow 已依 Request Status 控制流程，因此 Request 新增 Status 欄位。
-
-Workflow 僅依 Status 控制流程，不自行定義 Workflow Status。
-
-Status 詳細定義與流程，請參考 Request Decision Log。
-
----
-
-# 八、RequestType 分派
+# 五、Exception 處理
 
 ## 討論
 
-目前討論：
+討論：
 
-- switch
-- Dictionary
-- Plugin
-
-## 決議
-
-V1 採 switch。
-
-原因：
-
-- RequestType 數量少。
-- 可讀性高。
-- 重構成本低。
-
----
-
-# 九、V1 原則
-
-目前確認不納入：
+是否需要：
 
 - Retry
-- Plugin
-- Registry
-- Dictionary 分派
-- 多 Step Workflow
-- Distributed Worker
+- Timeout Recovery
+- Processing 自動復原
+- Heartbeat
 
-原則：
+考量：
 
-有需求再設計，不提前設計。
+程式 Exception：
+
+可由 try-catch 處理。
+
+不可預期事件：
+
+例如：
+
+- 停電
+- 主機故障
+- 作業系統異常
+- 程式被強制結束
+
+這些事件即使增加 Recovery，仍可能需要人工確認。
+
+V1 若加入上述機制，將增加大量複雜度。
+
+## 決議
+
+程式 Exception：
+
+- try-catch
+- Failed
+- Remark
+
+重大異常：
+
+交由 MIS 人工判斷。
+
+V1 不實作：
+
+- Retry
+- Timeout Recovery
+- Heartbeat
+- Processing 自動復原
+
+保留 V2 再評估。
 
 ---
 
-# 十、目前共識
+# 六、Worker 平行執行
 
-Workflow 目前以簡單架構完成 V1：
+## 討論
 
-- Request 為唯一工作來源。
-- Dispatcher 統一管理。
-- Worker 專責執行。
-- Notification 保持獨立。
-- Request 與 Workflow 保持低耦合。
-- Workflow 相關討論持續更新於本文件，Coding 前再整合至 Design 文件。
+曾討論：
+
+Worker 是否只能依序執行？
+
+若 Pending 很多：
+
+是否允許平行處理？
+
+## 決議
+
+Dispatcher：
+
+一次可派送多筆 Request。
+
+Worker：
+
+每個 Worker Instance 一次僅處理一筆 Request。
+
+多個 Worker Instance 可同時執行。
+
+因此 Workflow 可支援平行處理。
+
+---
+
+# 七、今日結論
+
+Workflow V1：
+
+Dispatcher
+
+↓
+
+查詢 Pending Request
+
+↓
+
+更新 Processing
+
+↓
+
+依 RequestType 指派 Worker
+
+↓
+
+Worker 執行
+
+↓
+
+Worker 更新 Status、Remark
+
+↓
+
+Success / Failed
+
+---
+
+# 待討論
+
+目前無。
+
+Workflow V1 實作方向已確認。
