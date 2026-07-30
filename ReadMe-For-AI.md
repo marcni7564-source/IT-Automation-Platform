@@ -1,10 +1,7 @@
-
-
 **本文件會隨專案開發階段持續調整。**
 
 不同階段（Discussion、Design、Coding、Maintenance），
 AI 應遵循當前版本所定義的工作流程。
-
 
 ## 文件目的
 
@@ -205,3 +202,5 @@ Testing
 - docs/Discussion/2026-07-29-Request-Decision-Log.md
 - docs/Discussion/2026-07-29-Workflow-Decision-Log.md
 - docs/Discussion/2026-07-30-Workflow-Decision-Log.md
+- docs/Discussion/2026-07-30-Notification-Decision-Log.md
+- docs/Discussion/2026-07-30-Workflow-Common-Capability-Discussion.md
