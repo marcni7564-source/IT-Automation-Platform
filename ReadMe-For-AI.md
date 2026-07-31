@@ -203,4 +203,4 @@ Testing
 - docs/Discussion/2026-07-29-Workflow-Decision-Log.md
 - docs/Discussion/2026-07-30-Workflow-Decision-Log.md
 - docs/Discussion/2026-07-30-Notification-Decision-Log.md
-- docs/Discussion/2026-07-30-Workflow-Common-Capability-Discussion.md
+- docs/Discussion/2026-07-30-Workflow-Common-Capability-Log.md
